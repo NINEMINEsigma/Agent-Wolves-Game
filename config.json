@@ -1,0 +1,37 @@
+{
+  "game_settings": {
+    "total_players": 10,
+    "roles": {
+      "villager": 5,
+      "werewolf": 3,
+      "seer": 1,
+      "witch": 1
+    },
+    "discussion_time": 60
+  },
+  "ai_settings": {
+    "model_name": "qwen3:0.6b",
+    "ollama_base_url": "http://localhost:11434",
+    "temperature": 1.1,
+    "max_tokens": 800,
+    "thinking_mode": true,
+    "context_length": 4096,
+    "presence_penalty": 1.5
+  },
+  "ui_settings": {
+    "display_thinking": true,
+    "auto_scroll": true,
+    "save_logs": true,
+    "show_reasoning": true,
+    "show_roles_to_user": true,
+    "hide_roles_from_ai": true,
+    "reveal_roles_on_death": true,
+    "observation_delays": {
+      "phase_transition": 2.0,
+      "action_result": 1.5,
+      "death_announcement": 3.0,
+      "speech": 2.0,
+      "voting_result": 1.5
+    }
+  }
+} 
