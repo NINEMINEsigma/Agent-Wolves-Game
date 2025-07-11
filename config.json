@@ -47,7 +47,6 @@
     }
   },
   "agent_settings": {
-    "mode": "traditional",
     "llm_backend": "ollama",
     "tools_enabled": true,
     "fallback_enabled": true,

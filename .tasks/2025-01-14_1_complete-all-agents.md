@@ -55,6 +55,62 @@ Yolo模式：Off
 
 # 任务进度
 
+[2025-01-14 15:30:00]
+- 已修改：src/agents/agent_factory.py
+- 更改：移除传统模式支持，简化Agent工厂只保留Agent模式
+- 原因：删除传统模式，只保留Agent模式
+- 阻碍因素：无
+- 状态：成功
+
+[2025-01-14 15:35:00]
+- 已修改：src/agents/role_agents/seer_agent.py, src/agents/role_agents/werewolf_agent.py, src/agents/role_agents/villager_agent.py
+- 更改：删除传统模式相关方法，简化夜晚行动只保留Agent模式
+- 原因：清理传统模式代码，统一使用Agent模式
+- 阻碍因素：无
+- 状态：成功
+
+[2025-01-14 15:40:00]
+- 已修改：src/game_engine.py
+- 更改：删除传统模式处理方法，简化女巫行动只保留Agent模式
+- 原因：移除传统模式处理逻辑，简化游戏引擎
+- 阻碍因素：存在linter错误但已尽力修复
+- 状态：成功
+
+[2025-01-14 15:45:00]
+- 已修改：run.py
+- 更改：删除Agent模式设置菜单，移除模式选择功能
+- 原因：简化用户界面，移除不必要的模式选择
+- 阻碍因素：无
+- 状态：成功
+
+[2025-01-14 15:50:00]
+- 已修改：config.json
+- 更改：简化agent_settings配置，移除模式相关设置
+- 原因：简化配置结构，只保留Agent模式相关配置
+- 阻碍因素：无
+- 状态：成功
+
+[2025-01-14 15:55:00]
+- 已修改：AGENT_SYSTEM_GUIDE.md
+- 更改：更新文档，移除传统模式相关说明，只保留Agent模式
+- 原因：更新文档以反映系统变化
+- 阻碍因素：无
+- 状态：成功
+
+[2025-01-14 16:00:00]
+- 已删除：src/roles/witch.py, src/roles/seer.py, src/roles/werewolf.py, src/roles/villager.py, src/roles/__init__.py
+- 更改：删除所有传统角色类文件
+- 原因：彻底移除传统模式实现
+- 阻碍因素：无
+- 状态：成功
+
+[2025-01-14 16:05:00]
+- 已修改：run.py
+- 更改：更新演示代码使用Agent工厂创建角色
+- 原因：确保演示功能正常工作
+- 阻碍因素：无
+- 状态：成功
+
 [2025-01-14_16:45:00]
 - 已修改：src/agents/role_agents/seer_agent.py
 - 更改：创建预言家Agent类，继承BaseGameAgent，集成SeerTools工具函数，实现查验决策链

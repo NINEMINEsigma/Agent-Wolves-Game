@@ -32,8 +32,8 @@ class WerewolfAgent(BaseGameAgent):
         # 初始化工具函数
         self.werewolf_tools = WerewolfTools(self)
         
-        # 创建Agent Runner
-        self.agent_runner = self._create_agent_runner()
+        # 在工具实例化完成后初始化Agent
+        self.initialize_agent()
         
         self.logger.info(f"狼人Agent {player_id} 初始化完成")
     
@@ -50,10 +50,8 @@ class WerewolfAgent(BaseGameAgent):
     def _create_agent_runner(self) -> Optional[AgentRunner]:
         """创建狼人Agent Runner"""
         try:
-            # 暂时返回None，使用传统模式
-            # TODO: 后续实现完整的Agent Runner
-            self.logger.info("狼人Agent Runner暂未实现，使用传统模式")
-            return None
+            # 使用父类的默认实现
+            return super()._create_agent_runner()
             
         except Exception as e:
             self.logger.error(f"创建狼人Agent Runner失败: {e}")
@@ -72,8 +70,8 @@ class WerewolfAgent(BaseGameAgent):
         """狼人夜晚击杀行动（Agent模式）"""
         try:
             if not self.agent_runner:
-                self.logger.warning("Agent Runner未初始化，使用传统模式")
-                return await self._traditional_night_action(game_state)
+                self.logger.warning("Agent Runner未初始化，使用基础决策")
+                return await self._basic_night_action(game_state)
             
             # 构建Agent提示
             agent_prompt = self._build_werewolf_agent_prompt(game_state)
@@ -97,8 +95,8 @@ class WerewolfAgent(BaseGameAgent):
             
         except Exception as e:
             self.logger.error(f"狼人Agent夜晚行动失败: {e}")
-            # 回退到传统模式
-            return await self._traditional_night_action(game_state)
+            # 回退到基础决策
+            return await self._basic_night_action(game_state)
     
     def _build_werewolf_agent_prompt(self, game_state: Dict[str, Any]) -> str:
         """构建狼人Agent提示"""
@@ -188,8 +186,8 @@ class WerewolfAgent(BaseGameAgent):
             "message": f"狼人随机选择击杀玩家{target}"
         }
     
-    async def _traditional_night_action(self, game_state: Dict[str, Any]) -> Dict[str, Any]:
-        """传统模式的夜晚行动（备用方案）"""
+    async def _basic_night_action(self, game_state: Dict[str, Any]) -> Dict[str, Any]:
+        """基础夜晚行动（备用方案）"""
         try:
             alive_players = [p["id"] for p in game_state.get("alive_players", []) 
                            if p["id"] != self.player_id and p["id"] not in self.teammates]
@@ -208,12 +206,11 @@ class WerewolfAgent(BaseGameAgent):
                 "action": "kill",
                 "target": kill_target,
                 "success": True,
-                "message": f"狼人（传统模式）选择击杀玩家{kill_target}",
-                "agent_mode": False
+                "message": f"狼人选择击杀玩家{kill_target}"
             }
             
         except Exception as e:
-            self.logger.error(f"传统模式夜晚行动失败: {e}")
+            self.logger.error(f"基础夜晚行动失败: {e}")
             return {
                 "action": "kill",
                 "success": False,

@@ -390,7 +390,7 @@ class WerewolfGameEngine:
             return {"success": False, "message": "备用查验异常"}
     
     async def _handle_witch_action(self, werewolf_result: Dict[str, Any]) -> Dict[str, Any]:
-        """处理女巫行动（支持Agent和传统模式）"""
+        """处理女巫行动（Agent模式）"""
         witch = self.special_roles.get("witch")
         
         if not witch or not witch.is_alive:
@@ -420,36 +420,23 @@ class WerewolfGameEngine:
             elif werewolf_result.get("success") and not has_antidote:
                 self.logger.info(f"女巫{witch.player_id}无解药，不被告知死亡信息")
             
-            # 检测是否为Agent模式
-            if self._is_agent_mode(witch):
-                return await self._handle_witch_agent_action(witch, werewolf_result, death_info or {})
-            else:
-                return await self._handle_witch_traditional_action(witch, werewolf_result, death_info or {})
+            # 使用Agent模式处理女巫行动
+            return await self._handle_witch_agent_action(witch, werewolf_result, death_info or {})
                 
         except Exception as e:
             self.logger.error(f"女巫行动处理异常: {e}")
             # 备用方案：回退到原始逻辑
             return await self._fallback_witch_action(witch, werewolf_result)
     
-    def _is_agent_mode(self, player) -> bool:
-        """检测是否为Agent模式"""
-        try:
-            # 检查是否有Agent相关属性
-            return hasattr(player, 'agent_runner') and player.agent_runner is not None
-        except:
-            return False
+
     
     def get_agent_mode_info(self) -> Dict[str, Any]:
         """获取Agent模式信息"""
-        return self.agent_factory.get_mode_info()
-    
-    def switch_agent_mode(self, new_mode: str):
-        """切换Agent模式"""
         try:
-            self.agent_factory.switch_mode(new_mode)
-            self.logger.info(f"游戏引擎Agent模式已切换为: {new_mode}")
+            return self.agent_factory.get_mode_info()
         except Exception as e:
-            self.logger.error(f"切换Agent模式失败: {e}")
+            self.logger.error(f"获取Agent模式信息失败: {e}")
+            return {"mode": "agent", "error": str(e)}
     
     def validate_agent_config(self) -> Dict[str, Any]:
         """验证Agent配置"""
@@ -525,93 +512,6 @@ class WerewolfGameEngine:
             
         except Exception as e:
             self.logger.error(f"女巫Agent行动处理异常: {e}")
-            return await self._fallback_witch_action(witch, werewolf_result)
-    
-    async def _handle_witch_traditional_action(self, witch, werewolf_result: Dict[str, Any], death_info: Dict[str, Any]) -> Dict[str, Any]:
-        """处理传统女巫行动（智能思考版本）"""
-        try:
-            # 使用特殊角色思考系统进行智能决策
-            game_state_dict = self.game_state.export_state(hide_roles_from_ai=True)
-            
-            # 进行深度思考和决策
-            thinking_result = await self.special_roles_thinking.conduct_witch_action_thinking(
-                witch, game_state_dict, death_info
-            )
-            
-            if thinking_result.get("success"):
-                action_type = thinking_result.get("action")
-                
-                if action_type == "save" and thinking_result.get("target"):
-                    # 使用解药
-                    target_id = thinking_result["target"]
-                    if hasattr(witch, 'has_antidote'):
-                        witch.has_antidote = False
-                    
-                    # 告知女巫救了谁的信息
-                    saved_player = self.game_state.get_player_by_id(target_id)
-                    if saved_player:
-                        witch.update_memory("night_actions", {
-                            "action": "save",
-                            "target": target_id,
-                            "target_name": saved_player["name"],
-                            "round": self.game_state.current_round
-                        })
-                    
-                    self.game_state.record_night_action(
-                        witch.player_id, "save", target_id,
-                        {"reasoning": thinking_result.get("reasoning", "")}
-                    )
-                    
-                    # 显示女巫药剂状态
-                    self._display_witch_status(witch, "使用解药后")
-                    
-                    return {
-                        "success": True,
-                        "action": "save",
-                        "target": target_id,
-                        "message": f"女巫深度思考后使用解药救活玩家{target_id}",
-                        "thinking_details": thinking_result
-                    }
-                
-                elif action_type == "poison" and thinking_result.get("target"):
-                    # 使用毒药
-                    target_id = thinking_result["target"]
-                    if hasattr(witch, 'has_poison'):
-                        witch.has_poison = False
-                    
-                    self.game_state.record_night_action(
-                        witch.player_id, "poison", target_id,
-                        {"reasoning": thinking_result.get("reasoning", "")}
-                    )
-                    
-                    # 显示女巫药剂状态
-                    self._display_witch_status(witch, "使用毒药后")
-                    
-                    return {
-                        "success": True,
-                        "action": "poison",
-                        "target": target_id,
-                        "message": f"女巫深度思考后使用毒药毒死玩家{target_id}",
-                        "thinking_details": thinking_result
-                    }
-                
-                else:
-                    # 不使用药剂
-                    # 显示女巫药剂状态
-                    self._display_witch_status(witch, "保留药剂")
-                    
-                    return {
-                        "success": True,
-                        "action": "no_action",
-                        "message": "女巫深度思考后选择不使用药剂",
-                        "thinking_details": thinking_result
-                    }
-            
-            return {"success": False, "message": "女巫思考决策失败"}
-            
-        except Exception as e:
-            self.logger.error(f"女巫智能行动处理异常: {e}")
-            # 备用方案：回退到原始逻辑
             return await self._fallback_witch_action(witch, werewolf_result)
     
     async def _fallback_witch_action(self, witch, werewolf_result: Dict[str, Any]) -> Dict[str, Any]:

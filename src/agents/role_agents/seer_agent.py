@@ -30,8 +30,8 @@ class SeerAgent(BaseGameAgent):
         # 初始化工具函数
         self.seer_tools = SeerTools(self)
         
-        # 创建Agent Runner
-        self.agent_runner = self._create_agent_runner()
+        # 在工具实例化完成后初始化Agent
+        self.initialize_agent()
         
         self.logger.info(f"预言家Agent {player_id} 初始化完成")
     
@@ -48,10 +48,8 @@ class SeerAgent(BaseGameAgent):
     def _create_agent_runner(self) -> Optional[AgentRunner]:
         """创建预言家Agent Runner"""
         try:
-            # 暂时返回None，使用传统模式
-            # TODO: 后续实现完整的Agent Runner
-            self.logger.info("预言家Agent Runner暂未实现，使用传统模式")
-            return None
+            # 使用父类的默认实现
+            return super()._create_agent_runner()
             
         except Exception as e:
             self.logger.error(f"创建预言家Agent Runner失败: {e}")
@@ -61,8 +59,8 @@ class SeerAgent(BaseGameAgent):
         """预言家夜晚查验行动（Agent模式）"""
         try:
             if not self.agent_runner:
-                self.logger.warning("Agent Runner未初始化，使用传统模式")
-                return await self._traditional_night_action(game_state)
+                self.logger.warning("Agent Runner未初始化，使用基础决策")
+                return await self._basic_night_action(game_state)
             
             # 构建Agent提示
             agent_prompt = self._build_seer_agent_prompt(game_state)
@@ -86,8 +84,8 @@ class SeerAgent(BaseGameAgent):
             
         except Exception as e:
             self.logger.error(f"预言家Agent夜晚行动失败: {e}")
-            # 回退到传统模式
-            return await self._traditional_night_action(game_state)
+            # 回退到基础决策
+            return await self._basic_night_action(game_state)
     
     def _build_seer_agent_prompt(self, game_state: Dict[str, Any]) -> str:
         """构建预言家Agent提示"""
@@ -181,8 +179,8 @@ class SeerAgent(BaseGameAgent):
             "message": f"预言家随机选择查验玩家{target}"
         }
     
-    async def _traditional_night_action(self, game_state: Dict[str, Any]) -> Dict[str, Any]:
-        """传统模式的夜晚行动（备用方案）"""
+    async def _basic_night_action(self, game_state: Dict[str, Any]) -> Dict[str, Any]:
+        """基础夜晚行动（备用方案）"""
         try:
             alive_players = [p["id"] for p in game_state.get("alive_players", []) 
                            if p["id"] != self.player_id]
@@ -205,12 +203,11 @@ class SeerAgent(BaseGameAgent):
                 "action": "divine",
                 "target": divine_target,
                 "success": True,
-                "message": f"预言家（传统模式）选择查验玩家{divine_target}",
-                "agent_mode": False
+                "message": f"预言家选择查验玩家{divine_target}"
             }
             
         except Exception as e:
-            self.logger.error(f"传统模式夜晚行动失败: {e}")
+            self.logger.error(f"基础夜晚行动失败: {e}")
             return {
                 "action": "divine",
                 "success": False,

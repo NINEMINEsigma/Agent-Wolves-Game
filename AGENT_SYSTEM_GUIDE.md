@@ -2,7 +2,7 @@
 
 ## 概述
 
-Agent系统是基于LlamaIndex的智能Agent架构，为狼人杀游戏提供了更智能的决策机制。系统支持传统模式和Agent模式的双重运行，实现了工具函数调用、多步骤决策链和智能推理。
+Agent系统是基于LlamaIndex的智能Agent架构，为狼人杀游戏提供了更智能的决策机制。系统采用工具函数调用、多步骤决策链和智能推理，实现了高度智能化的游戏体验。
 
 ## 架构设计
 
@@ -28,9 +28,9 @@ src/agents/
 
 1. **分层架构**: 基础Agent → 角色Agent → 工具函数
 2. **工具驱动**: 通过工具函数实现智能决策
-3. **双重模式**: 支持传统模式和Agent模式
-4. **渐进迁移**: 平滑切换，不影响现有功能
-5. **扩展性**: 易于添加新角色和工具函数
+3. **智能推理**: 使用LlamaIndex Agent进行多步骤决策
+4. **扩展性**: 易于添加新角色和工具函数
+5. **高可用性**: 具备备用方案和错误处理机制
 
 ## 配置指南
 
@@ -41,7 +41,6 @@ src/agents/
 ```json
 {
   "agent_settings": {
-    "mode": "traditional",           // "agent" | "traditional"
     "llm_backend": "ollama",         // LLM后端类型
     "tools_enabled": true,           // 是否启用工具函数
     "fallback_enabled": true,        // 是否启用备用方案
@@ -53,10 +52,15 @@ src/agents/
 }
 ```
 
-### 模式说明
+### 配置说明
 
-- **traditional**: 传统模式，直接使用LLM生成回复
-- **agent**: Agent模式，使用工具函数进行智能决策
+- **llm_backend**: 支持的LLM后端类型（openai, ollama, custom）
+- **tools_enabled**: 启用工具函数以获得更好的Agent性能
+- **fallback_enabled**: 启用备用方案确保系统稳定性
+- **max_agent_iterations**: 控制Agent决策的最大迭代次数
+- **agent_timeout**: 设置Agent决策的超时时间
+- **enable_tool_caching**: 启用工具函数缓存提高性能
+- **debug_mode**: 调试模式，输出详细的决策过程
 
 ### 配置验证
 
@@ -101,15 +105,14 @@ player_configs = [
 agents = factory.create_players(player_configs, llm_interface, prompts)
 ```
 
-#### 模式管理
+#### 系统信息
 
 ```python
-# 切换模式
-factory.switch_mode("agent")
-
-# 获取模式信息
+# 获取系统信息
 mode_info = factory.get_mode_info()
 print(f"当前模式: {mode_info['mode']}")
+print(f"LLM后端: {mode_info['llm_backend']}")
+print(f"工具启用: {mode_info['tools_enabled']}")
 ```
 
 ### BaseGameAgent
@@ -154,79 +157,32 @@ result = await agent.execute_decision_chain(context)
 
 ```python
 # 分析游戏局势
-analysis = common_tools.analyze_game_situation(game_state)
-
-# 获取玩家信息
-player_info = common_tools.get_player_info(player_id, game_state)
-
-# 更新怀疑度
-result = common_tools.update_suspicion(target_id, change, reason)
-
-# 分析发言模式
-speech_analysis = common_tools.analyze_speech_patterns(target_id)
+analysis = await common_tools.analyze_game_situation(game_state)
 
 # 评估投票策略
-voting_strategy = common_tools.evaluate_voting_strategy(candidates)
+strategy = await common_tools.evaluate_voting_strategy(candidates, game_state)
 
-# 获取记忆摘要
-memory_summary = common_tools.get_memory_summary(memory_type, limit)
+# 生成记忆摘要
+summary = await common_tools.generate_memory_summary(memory_data)
 
 # 分析行为一致性
-consistency = common_tools.analyze_behavior_consistency(target_id)
+consistency = await common_tools.analyze_behavior_consistency(player_data)
 ```
 
-#### 女巫工具 (WitchTools)
+#### 角色专用工具
 
 ```python
-# 检查药剂状态
-potion_status = witch_tools.check_potion_status()
+# 女巫工具
+witch_tools = WitchTools(agent)
+potion_decision = await witch_tools.decide_potion_usage(death_info, game_state)
 
-# 分析死亡情况
-death_analysis = witch_tools.analyze_death_situation(death_info)
+# 预言家工具
+seer_tools = SeerTools(agent)
+divine_target = await seer_tools.choose_divine_target(candidates, game_state)
 
-# 评估解药使用
-antidote_evaluation = witch_tools.evaluate_antidote_usage(death_info)
-
-# 评估毒药使用
-poison_evaluation = witch_tools.evaluate_poison_usage(game_state)
-
-# 执行解药行动
-antidote_result = witch_tools.use_antidote(target_id)
-
-# 执行毒药行动
-poison_result = witch_tools.use_poison(target_id)
-
-# 不操作
-no_action_result = witch_tools.no_action()
-```
-
-#### 预言家工具 (SeerTools)
-
-```python
-# 分析可疑玩家
-suspicious_analysis = seer_tools.analyze_suspicious_players(game_state)
-
-# 评估查验价值
-divine_value = seer_tools.evaluate_divine_value(target_id, game_state)
-
-# 执行查验
-divine_result = seer_tools.divine_player(target_id)
-```
-
-#### 狼人工具 (WerewolfTools)
-
-```python
-# 分析威胁等级
-threat_analysis = werewolf_tools.analyze_threat_level(game_state)
-
-# 协调同伴行动
-coordination = werewolf_tools.coordinate_with_teammates(game_state)
-
-# 选择击杀目标
-kill_target = werewolf_tools.select_kill_target(candidates, game_state)
-
-# 执行击杀
-kill_result = werewolf_tools.execute_kill(target_id)
+# 狼人工具
+werewolf_tools = WerewolfTools(agent)
+kill_target = await werewolf_tools.choose_kill_target(candidates, game_state)
 ```
 
 ## 使用示例
@@ -237,12 +193,10 @@ kill_result = werewolf_tools.execute_kill(target_id)
 import asyncio
 from src.agents.agent_factory import AgentFactory
 from src.llm_interface import LLMInterface
-from src.config_validator import ConfigValidator
 
-async def basic_example():
+async def main():
     # 加载配置
-    validator = ConfigValidator()
-    config = validator.load_config()
+    config = load_config()
     
     # 创建LLM接口
     llm_interface = LLMInterface(config)
@@ -250,119 +204,89 @@ async def basic_example():
     # 创建Agent工厂
     factory = AgentFactory(config)
     
-    # 加载提示词
-    with open('prompts/role_prompts.json', 'r', encoding='utf-8') as f:
-        role_prompts = json.load(f)
-    
     # 创建女巫Agent
-    witch_agent = factory.create_agent(
+    witch = factory.create_agent(
         player_id=1,
-        name="测试女巫",
+        name="女巫玩家",
         role="witch",
         llm_interface=llm_interface,
         prompts=role_prompts
     )
     
-    # 测试夜晚行动
-    game_state = {
-        "current_round": 1,
-        "phase": "夜晚",
-        "alive_players": [{"id": 1, "name": "测试女巫"}],
-        "dead_players": []
-    }
+    # 执行夜晚行动
+    game_state = {"alive_players": [...], "current_round": 1}
+    death_info = {"target": 2, "cause": "werewolf_kill"}
     
-    action_result = await witch_agent.night_action(game_state)
-    print(f"夜晚行动结果: {action_result}")
+    result = await witch.night_action(game_state, death_info)
+    print(f"女巫决策: {result}")
 
-# 运行示例
-asyncio.run(basic_example())
+if __name__ == "__main__":
+    asyncio.run(main())
 ```
 
-### 游戏引擎集成
+### 高级功能
 
 ```python
-from src.game_engine import GameEngine
-from src.agents.agent_factory import AgentFactory
+# 多步骤决策链
+context = {
+    "game_state": game_state,
+    "memory": agent.get_memory_context(),
+    "suspicions": agent.get_suspicions()
+}
 
-# 在游戏引擎中使用Agent工厂
-class EnhancedGameEngine(GameEngine):
-    def __init__(self, config, players):
-        super().__init__(config, players)
-        self.agent_factory = AgentFactory(config)
-    
-    def get_agent_mode_info(self):
-        return self.agent_factory.get_mode_info()
-    
-    def switch_agent_mode(self, new_mode):
-        self.agent_factory.switch_mode(new_mode)
-    
-    def validate_agent_config(self):
-        return self.agent_factory.validate_config()
-```
+decision_chain = await agent.execute_decision_chain(context)
 
-### 自定义工具函数
-
-```python
-from llama_index.core.tools import FunctionTool
-from src.agents.base_agent import BaseGameAgent
-
-class CustomAgent(BaseGameAgent):
-    def register_tools(self):
-        # 注册自定义工具
-        custom_tool = FunctionTool.from_defaults(
-            fn=self.custom_analysis,
-            name="custom_analysis",
-            description="自定义分析工具"
-        )
-        self.add_tool(custom_tool)
-    
-    def custom_analysis(self, data):
-        # 自定义分析逻辑
-        return {
-            "action": "custom_analysis",
-            "success": True,
-            "result": "分析结果"
-        }
+# 工具函数调用
+tools = agent.get_tools()
+for tool in tools:
+    if tool.name == "analyze_situation":
+        result = await tool.function(game_state)
+        break
 ```
 
 ## 测试指南
 
-### 运行测试套件
+### 运行测试
 
 ```bash
-python test_agent_system.py
+# 运行所有测试
+python -m pytest tests/test_agent_system.py -v
+
+# 运行特定测试
+python -m pytest tests/test_agent_system.py::test_witch_agent -v
+
+# 运行性能测试
+python -m pytest tests/test_agent_system.py::test_performance -v
 ```
 
-### 测试内容
+### 测试覆盖
 
-1. **Agent创建测试**: 验证各角色Agent的创建
-2. **工具函数测试**: 验证工具函数的调用
-3. **决策功能测试**: 验证Agent的决策能力
-4. **发言功能测试**: 验证Agent的发言生成
-5. **性能基准测试**: 测试响应时间和性能
-
-### 测试报告
-
-测试完成后会生成 `test_report.json` 文件，包含详细的测试结果和性能数据。
+- Agent创建和初始化
+- 工具函数调用
+- 决策功能测试
+- 发言功能测试
+- 投票功能测试
+- 性能基准测试
+- 错误处理测试
 
 ## 故障排除
 
 ### 常见问题
 
 1. **Agent创建失败**
-   - 检查配置文件中的Agent设置
-   - 验证LLM接口连接
-   - 确认提示词文件存在
+   - 检查LLM接口配置
+   - 验证角色类型是否正确
+   - 确认依赖包已安装
 
 2. **工具函数调用失败**
-   - 检查工具函数是否正确注册
-   - 验证输入参数格式
+   - 检查工具函数注册
+   - 验证参数格式
    - 查看错误日志
 
-3. **性能问题**
-   - 调整Agent超时设置
-   - 启用工具缓存
-   - 优化LLM模型配置
+3. **决策超时**
+   - 调整agent_timeout设置
+   - 检查LLM响应速度
+   - 优化决策逻辑
 
 ### 调试模式
 
@@ -376,75 +300,38 @@ python test_agent_system.py
 }
 ```
 
-### 日志查看
-
-```python
-import logging
-
-# 设置日志级别
-logging.basicConfig(level=logging.DEBUG)
-
-# 查看Agent日志
-logger = logging.getLogger("AgentFactory")
-```
-
-## 扩展开发
-
-### 添加新角色
-
-1. 创建角色Agent类
-2. 实现工具函数
-3. 在工厂中注册
-4. 更新配置文件
-
-### 添加新工具
-
-1. 定义工具函数
-2. 在Agent中注册
-3. 更新文档
-
-### 自定义决策逻辑
-
-1. 继承BaseGameAgent
-2. 重写决策方法
-3. 实现自定义逻辑
-
 ## 性能优化
 
-### 配置优化
+### 建议配置
 
 ```json
 {
   "agent_settings": {
-    "max_agent_iterations": 2,    // 减少迭代次数
-    "agent_timeout": 15,          // 缩短超时时间
-    "enable_tool_caching": true,  // 启用缓存
-    "debug_mode": false           // 关闭调试模式
+    "tools_enabled": true,
+    "enable_tool_caching": true,
+    "max_agent_iterations": 3,
+    "agent_timeout": 30
   }
 }
 ```
 
-### 代码优化
+### 最佳实践
 
-1. 使用异步操作
-2. 实现结果缓存
-3. 优化工具函数逻辑
-4. 减少不必要的API调用
+1. 启用工具缓存提高响应速度
+2. 合理设置迭代次数避免过度计算
+3. 使用适当的超时时间
+4. 定期清理内存数据
 
-## 版本历史
+## 更新日志
 
-- **v1.0.0**: 初始版本，支持基础Agent功能
-- **v1.1.0**: 添加工具函数系统
-- **v1.2.0**: 完善角色Agent实现
-- **v1.3.0**: 添加测试套件和文档
+### v2.0.0
+- 移除传统模式，只保留Agent模式
+- 优化工具函数系统
+- 改进错误处理机制
+- 增强性能监控
 
-## 贡献指南
-
-1. Fork项目
-2. 创建功能分支
-3. 编写测试
-4. 提交Pull Request
-
-## 许可证
-
-本项目采用MIT许可证，详见LICENSE文件。 
+### v1.0.0
+- 初始版本发布
+- 支持基础Agent功能
+- 实现工具函数调用
+- 提供双重模式支持 

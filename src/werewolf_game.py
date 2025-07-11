@@ -12,10 +12,7 @@ from pathlib import Path
 
 from .ai_agent import BaseAIAgent
 from .llm_interface import LLMInterface
-from .roles.villager import Villager
-from .roles.werewolf import Werewolf
-from .roles.seer import Seer
-from .roles.witch import Witch
+from .agents.agent_factory import AgentFactory
 from .game_engine import WerewolfGameEngine
 from .translation_manager import TranslationManager
 
@@ -197,24 +194,20 @@ class WerewolfGame:
         if "include_night_context_in_speech" not in memory_config:
             memory_config["include_night_context_in_speech"] = True
         
+        # 创建Agent工厂
+        agent_factory = AgentFactory(self.config)
+        
         # 创建玩家
         for role in role_list:
             # 统一命名为"玩家N"，确保AI之间无法通过名称识别角色身份
             # 身份隐藏仅针对AI，用户界面会显示完整信息供观察
             player_name = f"玩家{player_id}"
             
-            # 根据角色创建对应的AI代理，使用身份强化系统和记忆配置
-            if role == "villager":
-                player = Villager(player_id, player_name, self.llm_interface, self.role_prompts, identity_system, memory_config)
-            elif role == "werewolf":
-                player = Werewolf(player_id, player_name, self.llm_interface, self.role_prompts, identity_system, memory_config)
-            elif role == "seer":
-                player = Seer(player_id, player_name, self.llm_interface, self.role_prompts, identity_system, memory_config)
-            elif role == "witch":
-                player = Witch(player_id, player_name, self.llm_interface, self.role_prompts, identity_system, memory_config)
-            else:
-                # 默认创建村民
-                player = Villager(player_id, player_name, self.llm_interface, self.role_prompts, identity_system, memory_config)
+            # 使用Agent工厂创建对应的AI代理
+            player = agent_factory.create_agent(
+                player_id, player_name, role, self.llm_interface, 
+                self.role_prompts, identity_system, memory_config
+            )
             
             self.players.append(player)
             player_id += 1

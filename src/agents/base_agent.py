@@ -9,8 +9,8 @@ from typing import Dict, Any, List, Optional, Callable
 from abc import ABC, abstractmethod
 from datetime import datetime
 
-from llama_index.core.tools import FunctionTool
-from llama_index.core.agent import AgentRunner
+from llama_index.core.tools import FunctionTool, BaseTool
+from llama_index.core.agent import AgentRunner, ReActAgent
 from llama_index.llms.ollama import Ollama
 
 from ..ai_agent import BaseAIAgent
@@ -27,18 +27,37 @@ class BaseGameAgent(BaseAIAgent):
         
         # Agent特有属性
         self.tools: List[FunctionTool] = []
-        self.agent_runner: Optional[AgentRunner] = None
+        self.agent_runner: Optional[ReActAgent] = None # 将在_initialize_agent被立刻赋值
         self.decision_history: List[Dict[str, Any]] = []
         
-        # 初始化Agent
-        self._initialize_agent()
+        # 注意：不在这里初始化Agent，让子类先完成工具实例化
     
-    def _initialize_agent(self):
+    def initialize_agent(self):
         """初始化LlamaIndex Agent"""
         try:
             # 注册工具
             self.register_tools()
             
+            # 创建Agent Runner
+            self.agent_runner = self._create_agent_runner()
+            
+            if self.agent_runner:
+                self.logger.info(f"Agent {self.name}({self.role}) 初始化成功")
+            else:
+                self.logger.warning(f"Agent {self.name}({self.role}) Agent Runner创建失败，使用基础模式")
+            
+        except Exception as e:
+            self.logger.error(f"Agent初始化失败: {e}")
+            self.agent_runner = None
+    
+    @abstractmethod
+    def register_tools(self) -> None:
+        """注册角色特定的工具函数"""
+        pass
+    
+    def _create_agent_runner(self) -> Optional[ReActAgent]:
+        """创建Agent Runner的默认实现"""
+        try:
             # 创建Ollama LLM实例
             llm = Ollama(
                 model=self.llm_interface.model_name,
@@ -46,24 +65,20 @@ class BaseGameAgent(BaseAIAgent):
                 temperature=self.llm_interface.temperature
             )
             
-            # 创建Agent Runner
-            self.agent_runner = AgentRunner.from_tools(
-                tools=self.tools,
-                llm=llm,
-                verbose=True
-            )
-            
-            self.logger.info(f"Agent {self.name}({self.role}) 初始化成功")
-            
+            # 创建Agent Runner - 使用正确的API
+            if self.tools:
+                return ReActAgent.from_tools(
+                    tools=self.tools,  # type: ignore
+                    llm=llm,
+                    verbose=True
+                )
+            else:
+                self.logger.warning(f"Agent {self.name}({self.role}) 没有可用工具")
+                return None
+                
         except Exception as e:
-            self.logger.error(f"Agent初始化失败: {e}")
-            # 回退到基础模式
-            self.agent_runner = None
-    
-    @abstractmethod
-    def register_tools(self) -> None:
-        """注册角色特定的工具函数"""
-        pass
+            self.logger.error(f"创建Agent Runner失败: {e}")
+            return None
     
     def add_tool(self, tool: FunctionTool):
         """添加工具到Agent"""
@@ -139,7 +154,7 @@ class BaseGameAgent(BaseAIAgent):
         
         当前游戏情况：{game_context}
         
-        可用工具：{', '.join([tool.name for tool in self.tools])}
+        可用工具：{', '.join([getattr(tool, 'name', str(tool)) for tool in self.tools])}
         
         请根据当前情况，使用合适的工具进行决策。
         如果需要多步决策，请逐步执行。

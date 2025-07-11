@@ -26,8 +26,8 @@ class VillagerAgent(BaseGameAgent):
         # 初始化工具函数
         self.common_tools = CommonTools(self)
         
-        # 创建Agent Runner
-        self.agent_runner = self._create_agent_runner()
+        # 在工具实例化完成后初始化Agent
+        self.initialize_agent()
         
         self.logger.info(f"村民Agent {player_id} 初始化完成")
     
@@ -44,10 +44,8 @@ class VillagerAgent(BaseGameAgent):
     def _create_agent_runner(self) -> Optional[AgentRunner]:
         """创建村民Agent Runner"""
         try:
-            # 暂时返回None，使用传统模式
-            # TODO: 后续实现完整的Agent Runner
-            self.logger.info("村民Agent Runner暂未实现，使用传统模式")
-            return None
+            # 使用父类的默认实现
+            return super()._create_agent_runner()
             
         except Exception as e:
             self.logger.error(f"创建村民Agent Runner失败: {e}")
@@ -57,8 +55,8 @@ class VillagerAgent(BaseGameAgent):
         """村民夜晚行动（Agent模式）"""
         try:
             if not self.agent_runner:
-                self.logger.warning("Agent Runner未初始化，使用传统模式")
-                return await self._traditional_night_action(game_state)
+                self.logger.warning("Agent Runner未初始化，使用基础决策")
+                return await self._basic_night_action(game_state)
             
             # 构建Agent提示
             agent_prompt = self._build_villager_agent_prompt(game_state)
@@ -82,8 +80,8 @@ class VillagerAgent(BaseGameAgent):
             
         except Exception as e:
             self.logger.error(f"村民Agent夜晚行动失败: {e}")
-            # 回退到传统模式
-            return await self._traditional_night_action(game_state)
+            # 回退到基础决策
+            return await self._basic_night_action(game_state)
     
     def _build_villager_agent_prompt(self, game_state: Dict[str, Any]) -> str:
         """构建村民Agent提示"""
@@ -137,8 +135,8 @@ class VillagerAgent(BaseGameAgent):
                 "message": "夜晚反思失败"
             }
     
-    async def _traditional_night_action(self, game_state: Dict[str, Any]) -> Dict[str, Any]:
-        """传统模式的夜晚行动（备用方案）"""
+    async def _basic_night_action(self, game_state: Dict[str, Any]) -> Dict[str, Any]:
+        """基础夜晚行动（备用方案）"""
         try:
             # 分析当天的情况
             analysis_prompt = f"""
@@ -174,12 +172,11 @@ class VillagerAgent(BaseGameAgent):
             return {
                 "action": "reflect",
                 "success": True,
-                "message": f"玩家{self.player_id}进行了夜晚反思",
-                "agent_mode": False
+                "message": f"玩家{self.player_id}进行了夜晚反思"
             }
             
         except Exception as e:
-            self.logger.error(f"传统模式夜晚行动失败: {e}")
+            self.logger.error(f"基础夜晚行动失败: {e}")
             return {
                 "action": "reflect",
                 "success": False,
