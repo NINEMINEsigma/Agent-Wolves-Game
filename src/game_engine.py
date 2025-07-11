@@ -17,6 +17,7 @@ from .ui_observer import GameObserver
 from .werewolf_cooperation import WerewolfCooperationSystem
 from .special_roles_thinking import SpecialRolesThinkingSystem
 from .day_end_system import DayEndSystem
+from .agents.agent_factory import AgentFactory
 
 
 class WerewolfGameEngine:
@@ -35,6 +36,9 @@ class WerewolfGameEngine:
         
         # 日志设置（需要在其他组件初始化之前）
         self.logger = logging.getLogger(__name__)
+        
+        # 初始化Agent工厂
+        self.agent_factory = AgentFactory(config)
         
         # 初始化核心组件
         self.game_state = GameState(config)
@@ -386,7 +390,7 @@ class WerewolfGameEngine:
             return {"success": False, "message": "备用查验异常"}
     
     async def _handle_witch_action(self, werewolf_result: Dict[str, Any]) -> Dict[str, Any]:
-        """处理女巫行动（智能思考版本）"""
+        """处理女巫行动（支持Agent和传统模式）"""
         witch = self.special_roles.get("witch")
         
         if not witch or not witch.is_alive:
@@ -416,6 +420,116 @@ class WerewolfGameEngine:
             elif werewolf_result.get("success") and not has_antidote:
                 self.logger.info(f"女巫{witch.player_id}无解药，不被告知死亡信息")
             
+            # 检测是否为Agent模式
+            if self._is_agent_mode(witch):
+                return await self._handle_witch_agent_action(witch, werewolf_result, death_info or {})
+            else:
+                return await self._handle_witch_traditional_action(witch, werewolf_result, death_info or {})
+                
+        except Exception as e:
+            self.logger.error(f"女巫行动处理异常: {e}")
+            # 备用方案：回退到原始逻辑
+            return await self._fallback_witch_action(witch, werewolf_result)
+    
+    def _is_agent_mode(self, player) -> bool:
+        """检测是否为Agent模式"""
+        try:
+            # 检查是否有Agent相关属性
+            return hasattr(player, 'agent_runner') and player.agent_runner is not None
+        except:
+            return False
+    
+    def get_agent_mode_info(self) -> Dict[str, Any]:
+        """获取Agent模式信息"""
+        return self.agent_factory.get_mode_info()
+    
+    def switch_agent_mode(self, new_mode: str):
+        """切换Agent模式"""
+        try:
+            self.agent_factory.switch_mode(new_mode)
+            self.logger.info(f"游戏引擎Agent模式已切换为: {new_mode}")
+        except Exception as e:
+            self.logger.error(f"切换Agent模式失败: {e}")
+    
+    def validate_agent_config(self) -> Dict[str, Any]:
+        """验证Agent配置"""
+        return self.agent_factory.validate_config()
+    
+    async def _handle_witch_agent_action(self, witch, werewolf_result: Dict[str, Any], death_info: Dict[str, Any]) -> Dict[str, Any]:
+        """处理女巫Agent行动"""
+        try:
+            self.logger.info(f"使用女巫Agent模式进行决策")
+            
+            # 构建游戏状态
+            game_state_dict = self.game_state.export_state(hide_roles_from_ai=True)
+            
+            # 使用Agent进行决策
+            action_result = await witch.night_action(game_state_dict, death_info)
+            
+            if action_result.get("success"):
+                action_type = action_result.get("action")
+                
+                if action_type == "use_antidote" and action_result.get("target_id"):
+                    # 使用解药
+                    target_id = action_result["target_id"]
+                    
+                    self.game_state.record_night_action(
+                        witch.player_id, "save", target_id,
+                        {"reasoning": action_result.get("message", "")}
+                    )
+                    
+                    # 显示女巫药剂状态
+                    self._display_witch_status(witch, "使用解药后（Agent模式）")
+                    
+                    return {
+                        "success": True,
+                        "action": "save",
+                        "target": target_id,
+                        "message": f"女巫Agent使用解药救活玩家{target_id}",
+                        "agent_details": action_result
+                    }
+                
+                elif action_type == "use_poison" and action_result.get("target_id"):
+                    # 使用毒药
+                    target_id = action_result["target_id"]
+                    
+                    self.game_state.record_night_action(
+                        witch.player_id, "poison", target_id,
+                        {"reasoning": action_result.get("message", "")}
+                    )
+                    
+                    # 显示女巫药剂状态
+                    self._display_witch_status(witch, "使用毒药后（Agent模式）")
+                    
+                    return {
+                        "success": True,
+                        "action": "poison",
+                        "target": target_id,
+                        "message": f"女巫Agent使用毒药毒死玩家{target_id}",
+                        "agent_details": action_result
+                    }
+                
+                else:
+                    # 不使用药剂
+                    # 显示女巫药剂状态
+                    self._display_witch_status(witch, "保留药剂（Agent模式）")
+                    
+                    return {
+                        "success": True,
+                        "action": "no_action",
+                        "message": "女巫Agent选择不使用药剂",
+                        "agent_details": action_result
+                    }
+            
+            return {"success": False, "message": "女巫Agent决策失败"}
+            
+        except Exception as e:
+            self.logger.error(f"女巫Agent行动处理异常: {e}")
+            return await self._fallback_witch_action(witch, werewolf_result)
+    
+    async def _handle_witch_traditional_action(self, witch, werewolf_result: Dict[str, Any], death_info: Dict[str, Any]) -> Dict[str, Any]:
+        """处理传统女巫行动（智能思考版本）"""
+        try:
             # 使用特殊角色思考系统进行智能决策
             game_state_dict = self.game_state.export_state(hide_roles_from_ai=True)
             

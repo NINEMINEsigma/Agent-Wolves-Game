@@ -45,5 +45,15 @@
       "speech": 0,
       "voting_result": 5
     }
+  },
+  "agent_settings": {
+    "mode": "traditional",
+    "llm_backend": "ollama",
+    "tools_enabled": true,
+    "fallback_enabled": true,
+    "max_agent_iterations": 3,
+    "agent_timeout": 30,
+    "enable_tool_caching": true,
+    "debug_mode": false
   }
 } 

@@ -17,6 +17,7 @@ def print_welcome():
     print("=" * 60)
     print("🤖 基于AI多智能体对战")
     print("👀 作为观察者，观看AI们的博弈")
+    print("🔧 支持传统模式和Agent模式")
     print("=" * 60)
 
 def check_environment():
@@ -336,6 +337,75 @@ async def start_full_game():
         print(f"错误详情: {str(e)}")
         return False
 
+async def configure_agent_mode():
+    """配置Agent模式"""
+    print("\n🔧 Agent模式设置")
+    print("=" * 40)
+    
+    try:
+        # 添加src目录到路径
+        src_path = os.path.join(os.path.dirname(__file__), 'src')
+        if src_path not in sys.path:
+            sys.path.insert(0, src_path)
+        
+        from src.config_validator import ConfigValidator
+        from src.agents.agent_factory import AgentFactory
+        
+        # 加载配置
+        validator = ConfigValidator()
+        config = validator.load_config()
+        
+        # 创建Agent工厂
+        factory = AgentFactory(config)
+        
+        # 显示当前设置
+        mode_info = factory.get_mode_info()
+        print(f"📋 当前模式: {mode_info['mode']}")
+        print(f"🔧 LLM后端: {mode_info['llm_backend']}")
+        print(f"🛠️ 工具启用: {mode_info['tools_enabled']}")
+        print(f"🔄 备用方案: {mode_info['fallback_enabled']}")
+        
+        # 验证配置
+        validation = factory.validate_config()
+        if not validation["valid"]:
+            print("\n❌ 配置验证失败:")
+            for error in validation["errors"]:
+                print(f"   - {error}")
+        
+        if validation["warnings"]:
+            print("\n⚠️ 配置警告:")
+            for warning in validation["warnings"]:
+                print(f"   - {warning}")
+        
+        # 模式选择
+        print("\n📋 选择Agent模式:")
+        print("1. 🤖 Agent模式 (使用工具函数)")
+        print("2. 🎭 传统模式 (直接LLM调用)")
+        print("3. 🔄 返回主菜单")
+        
+        choice = input("\n👉 请选择模式 (1-3): ").strip()
+        
+        if choice == '1':
+            factory.switch_mode("agent")
+            print("✅ 已切换到Agent模式")
+        elif choice == '2':
+            factory.switch_mode("traditional")
+            print("✅ 已切换到传统模式")
+        elif choice == '3':
+            return
+        else:
+            print("❌ 无效选择")
+            return
+        
+        # 保存配置
+        print("\n💾 保存配置...")
+        # TODO: 实现配置保存功能
+        
+        print("✅ Agent模式配置完成")
+        
+    except Exception as e:
+        print(f"❌ Agent模式配置失败: {e}")
+
 def show_menu():
     """显示主菜单"""
     print("\n" + "=" * 40)
@@ -344,8 +414,9 @@ def show_menu():
     print("1. 🧪 基础AI连接测试")
     print("2. 🎭 AI角色演示")
     print("3. 🎮 启动完整游戏")
-    print("4. 📋 查看设置指南")
-    print("5. 🚪 退出")
+    print("4. 🔧 Agent模式设置")
+    print("5. 📋 查看设置指南")
+    print("6. 🚪 退出")
     print("=" * 40)
 
 async def main():
@@ -369,7 +440,7 @@ async def main():
         show_menu()
         
         try:
-            choice = input("\n👉 请选择操作 (1-5): ").strip()
+            choice = input("\n👉 请选择操作 (1-6): ").strip()
             
             if choice == '1':
                 await test_basic_ai()
@@ -378,12 +449,14 @@ async def main():
             elif choice == '3':
                 await start_full_game()
             elif choice == '4':
-                print_setup_guide()
+                await configure_agent_mode()
             elif choice == '5':
+                print_setup_guide()
+            elif choice == '6':
                 print("\n👋 感谢使用AI狼人杀游戏！")
                 break
             else:
-                print("\n❌ 无效选择，请输入1-5")
+                print("\n❌ 无效选择，请输入1-6")
                 
         except KeyboardInterrupt:
             print("\n\n👋 游戏已退出")
