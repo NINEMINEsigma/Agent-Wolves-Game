@@ -26,11 +26,8 @@ def check_environment():
     # 检查必要文件
     required_files = [
         'config.json',
-        'requirements.txt',
         'prompts/role_prompts.json',
         'prompts/game_prompts.json',
-        'src/llm_interface.py',
-        'src/ai_agent.py'
     ]
     
     missing_files = []
@@ -119,11 +116,11 @@ def check_ollama_connection():
         try:
             with open('config.json', 'r', encoding='utf-8') as f:
                 config = json.load(f)
-            ollama_url = config.get("ai_settings", {}).get("ollama_base_url", "http://localhost:11434")
-            model_name = config.get("ai_settings", {}).get("model_name", "qwen3:0.6b")
-        except:
-            ollama_url = "http://localhost:11434"
-            model_name = "qwen3:0.6b"
+            ollama_url = config.get("ai_settings").get("ollama_base_url", "http://localhost:11434")
+            model_name = config.get("ai_settings").get("model_name")
+        except Exception as e:
+            print(f"❌ 配置文件读取失败: {e}")
+            return False
         
         response = requests.get(f"{ollama_url}/api/tags", timeout=5)
         if response.status_code == 200:
@@ -194,7 +191,7 @@ async def test_basic_ai():
     print("\n🧪 进行基础AI测试...")
     
     try:
-        from src.llm_interface import QwenInterface
+        from src.llm_interface import LLMInterface
         from src.config_validator import ConfigValidator
         
         # 使用配置验证器加载配置
@@ -202,7 +199,7 @@ async def test_basic_ai():
         config = validator.load_config()
         
         # 创建LLM接口
-        llm = QwenInterface(config)
+        llm = LLMInterface(config)
         
         # 简单测试
         response = await llm.generate_response(
@@ -228,7 +225,7 @@ async def start_simple_demo():
         if src_path not in sys.path:
             sys.path.insert(0, src_path)
         
-        from src.llm_interface import QwenInterface
+        from src.llm_interface import LLMInterface
         from src.roles.villager import Villager
         from src.config_validator import ConfigValidator
         
@@ -240,7 +237,7 @@ async def start_simple_demo():
             role_prompts = json.load(f)
         
         # 创建LLM接口和角色
-        llm = QwenInterface(config)
+        llm = LLMInterface(config)
         villager = Villager(1, "演示村民", llm, role_prompts)
         
         print(f"✅ 成功创建角色: {villager}")

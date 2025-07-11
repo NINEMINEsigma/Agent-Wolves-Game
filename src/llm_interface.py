@@ -1,6 +1,6 @@
 """
-Qwen3 LLM接口封装模块
-用于与Ollama服务器通信，调用Qwen3-0.6B模型
+通用LLM接口封装模块
+用于与Ollama服务器通信，支持任意模型
 支持thinking/non-thinking模式切换，专为狼人杀游戏优化
 """
 
@@ -12,8 +12,8 @@ import requests
 from datetime import datetime
 
 
-class QwenInterface:
-    """Qwen3模型接口封装类，支持thinking模式的智能推理"""
+class LLMInterface:
+    """通用LLM模型接口封装类，支持thinking模式的智能推理"""
     
     def __init__(self, config: Dict[str, Any]):
         """
@@ -286,4 +286,4 @@ class QwenInterface:
             return "抱歉，处理聊天时出现错误。"
 
 # 为了保持向后兼容性，创建别名
-DeepSeekInterface = QwenInterface 
+DeepSeekInterface = LLMInterface 

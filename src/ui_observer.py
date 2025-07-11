@@ -46,6 +46,7 @@ except ImportError:
 
 from .ai_agent import BaseAIAgent
 from .game_state import GameState
+from .translation_manager import TranslationManager
 
 
 class GameObserver:
@@ -89,6 +90,9 @@ class GameObserver:
             "phase_change": Fore.MAGENTA + Style.BRIGHT,
             "game_end": Fore.GREEN + Style.BRIGHT
         }
+        
+        # 翻译管理器
+        self.translation_manager = TranslationManager()
     
     def display_game_start(self, players: List[Dict[str, Any]]) -> None:
         """
@@ -117,9 +121,9 @@ class GameObserver:
             if show_roles_to_user:
                 role_color = self.role_colors.get(player.get("role", "unknown"), Fore.WHITE)
                 role_name = self._get_role_display_name(player.get("role", "unknown"))
-                print(f"  {role_color}玩家{player['id']} - {player['name']} ({role_name})")
+                print(f"  {role_color}{player['name']} - ({role_name})")
             else:
-                print(f"  {Fore.WHITE}玩家{player['id']} - {player['name']}")
+                print(f"  {Fore.WHITE}{player['name']}")
         
         print(f"\n{Fore.GREEN}🎯 观看AI们的智慧博弈吧！")
         self._print_separator()
@@ -403,25 +407,11 @@ class GameObserver:
     
     def _get_role_display_name(self, role: str) -> str:
         """获取角色显示名称"""
-        role_names = {
-            "villager": "村民",
-            "werewolf": "狼人",
-            "seer": "预言家",
-            "witch": "女巫"
-        }
-        return role_names.get(role, role)
+        return self.translation_manager.get_role_name(role)
     
     def _get_phase_display_name(self, phase: str) -> str:
         """获取阶段显示名称"""
-        phase_names = {
-            "preparation": "准备阶段",
-            "night": "夜晚",
-            "day": "白天",
-            "discussion": "讨论阶段",
-            "voting": "投票阶段",
-            "game_end": "游戏结束"
-        }
-        return phase_names.get(phase, phase)
+        return self.translation_manager.get_phase_name(phase)
     
     def _wrap_text(self, text: str, width: int) -> List[str]:
         """文本换行"""

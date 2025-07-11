@@ -11,12 +11,13 @@ from typing import Dict, List, Any, Optional
 from pathlib import Path
 
 from .ai_agent import BaseAIAgent
-from .llm_interface import QwenInterface
+from .llm_interface import LLMInterface
 from .roles.villager import Villager
 from .roles.werewolf import Werewolf
 from .roles.seer import Seer
 from .roles.witch import Witch
 from .game_engine import WerewolfGameEngine
+from .translation_manager import TranslationManager
 
 
 class WerewolfGame:
@@ -45,6 +46,9 @@ class WerewolfGame:
         # 角色提示词
         self.role_prompts = self._load_role_prompts()
         self.game_prompts = self._load_game_prompts()
+        
+        # 翻译管理器
+        self.translation_manager = TranslationManager()
     
     def _load_config(self) -> Dict[str, Any]:
         """加载游戏配置"""
@@ -97,6 +101,10 @@ class WerewolfGame:
                     "speech": 2.0,
                     "voting_result": 1.5
                 }
+            },
+            "translation_settings": {
+                "translation_file": "translations/zh_CN.json",
+                "fallback_to_default": True
             }
         }
     
@@ -136,7 +144,7 @@ class WerewolfGame:
                 return False
             
             # 2. 初始化LLM接口
-            self.llm_interface = QwenInterface(self.config)
+            self.llm_interface = LLMInterface(self.config)
             
             # 3. 测试LLM连接
             test_response = await self.llm_interface.generate_response(
@@ -264,14 +272,8 @@ class WerewolfGame:
             return False
     
     def _get_role_name(self, role: str) -> str:
-        """获取角色中文名"""
-        role_names = {
-            "villager": "村民",
-            "werewolf": "狼人",
-            "seer": "预言家",
-            "witch": "女巫"
-        }
-        return role_names.get(role, role)
+        """获取角色名翻译"""
+        return self.translation_manager.get_role_name(role)
     
     async def start(self) -> Dict[str, Any]:
         """
@@ -515,7 +517,7 @@ class WerewolfGame:
         """
         try:
             if not self.llm_interface:
-                self.llm_interface = QwenInterface(self.config)
+                self.llm_interface = LLMInterface(self.config)
             
             # 测试基础对话
             test_prompt = "请简单回复：AI狼人杀测试成功"

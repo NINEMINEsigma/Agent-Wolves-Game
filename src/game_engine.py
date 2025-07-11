@@ -818,7 +818,7 @@ class WerewolfGameEngine:
             # 重新投票
             print(f"\n🗳️ 重新投票阶段")
             revote_result = await self.voting_system.conduct_full_vote(
-                alive_players, candidate_ids, "elimination", is_revote=True
+                alive_players, tied_players, "elimination", is_revote=True
             )
             
             # 显示重新投票结果

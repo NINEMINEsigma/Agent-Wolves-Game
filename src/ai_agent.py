@@ -10,7 +10,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 
-from .llm_interface import QwenInterface
+from .llm_interface import LLMInterface
 from .identity_system import IdentitySystem
 
 
@@ -18,7 +18,7 @@ class BaseAIAgent(ABC):
     """AI智能体基类，所有角色都继承此类"""
     
     def __init__(self, player_id: int, name: str, role: str, 
-                 llm_interface: QwenInterface, prompts: Dict[str, Any], 
+                 llm_interface: LLMInterface, prompts: Dict[str, Any], 
                  identity_system: Optional[IdentitySystem] = None,
                  memory_config: Optional[Dict[str, Any]] = None):
         """

@@ -1,0 +1,52 @@
+{
+  "roles": {
+    "villager": "村民",
+    "werewolf": "狼人",
+    "seer": "预言家",
+    "witch": "女巫",
+    "hunter": "猎人",
+    "guard": "守卫"
+  },
+  "phases": {
+    "preparation": "准备阶段",
+    "night": "夜晚",
+    "day": "白天",
+    "discussion": "讨论阶段",
+    "voting": "投票阶段",
+    "game_end": "游戏结束"
+  },
+  "game_terms": {
+    "victory": "胜利",
+    "defeat": "失败",
+    "alive": "存活",
+    "dead": "死亡",
+    "round": "轮",
+    "player": "玩家",
+    "total_players": "总玩家数",
+    "game_mode": "游戏模式",
+    "max_rounds": "最大回合数",
+    "ai_model": "AI模型",
+    "player_list": "玩家名单",
+    "current_status": "当前状态",
+    "surviving": "存活",
+    "victory_probability": "胜率预测",
+    "role_statistics": "角色统计",
+    "thanks_for_watching": "感谢观看AI狼人杀"
+  },
+  "ui_messages": {
+    "game_start": "AI狼人杀游戏开始！",
+    "game_settings": "游戏设置",
+    "player_list_title": "玩家名单",
+    "watch_ai_game": "观看AI们的智慧博弈吧！",
+    "current_status_title": "当前状态",
+    "surviving_players": "存活",
+    "victory_prediction": "胜率预测",
+    "role_summary": "角色统计",
+    "game_end_thanks": "感谢观看AI狼人杀！",
+    "round_limit_reached": "达到最大回合数限制",
+    "thinking_process": "思考中...",
+    "death_announcement": "死亡公告",
+    "voting_result": "投票结果",
+    "night_action": "夜晚行动"
+  }
+} 

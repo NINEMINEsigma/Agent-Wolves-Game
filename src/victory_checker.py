@@ -115,8 +115,8 @@ class VictoryChecker:
         werewolf_count = faction_counts["werewolves"]
         total_alive = faction_counts["total_alive"]
         
-        # 检查狼人胜利条件：消灭所有村民（包括特殊角色）
-        if villager_faction_count == 0 and werewolf_count > 0:
+        # 检查狼人胜利条件：消灭所有普通村民
+        if villager_count == 0 and werewolf_count > 0:
             return True, "werewolves"
         
         # 检查村民阵营胜利条件：消灭所有狼人
@@ -146,7 +146,7 @@ class VictoryChecker:
         faction_counts = self.count_alive_by_faction(game_state)
         
         if winner == "werewolves":
-            if faction_counts["villager_faction"] == 0:
+            if faction_counts["villagers"] == 0:
                 return "狼人阵营胜利！消灭了所有村民"
         
         elif winner == "villagers":

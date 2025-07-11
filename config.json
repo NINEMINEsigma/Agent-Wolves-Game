@@ -10,7 +10,7 @@
     "discussion_time": 60
   },
   "ai_settings": {
-    "model_name": "deepseek-r1:8b",
+    "model_name": "qwen3:0.6b",
     "ollama_base_url": "http://localhost:11434",
     "temperature": 1.1,
     "max_tokens": 800,
@@ -20,18 +20,18 @@
   },
   "memory_settings": {
     "max_speech_length": 500,
-    "max_memory_events": 50,
-    "context_length_limit": 2000,
+    "max_memory_events": 999,
+    "context_length_limit": 200000,
     "round_based_memory": true,
     "preserve_last_words": true,
     "speech_content_truncate": false,
-    "memory_retention_rounds": 3,
-    "night_discussion_memory_limit": 20,
-    "night_thinking_memory_limit": 15,
+    "memory_retention_rounds": 999,
+    "night_discussion_memory_limit": 999,
+    "night_thinking_memory_limit": 999,
     "include_night_context_in_speech": true
   },
   "ui_settings": {
-    "display_thinking": true,
+    "display_thinking": false,
     "auto_scroll": true,
     "save_logs": true,
     "show_reasoning": true,
@@ -39,11 +39,11 @@
     "hide_roles_from_ai": true,
     "reveal_roles_on_death": true,
     "observation_delays": {
-      "phase_transition": 2.0,
-      "action_result": 1.5,
-      "death_announcement": 3.0,
-      "speech": 2.0,
-      "voting_result": 1.5
+      "phase_transition": 0,
+      "action_result": 0,
+      "death_announcement": 0,
+      "speech": 0,
+      "voting_result": 5
     }
   }
 } 
