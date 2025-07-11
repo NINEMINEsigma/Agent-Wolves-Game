@@ -692,8 +692,22 @@ class WerewolfGameEngine:
         alive_players.sort(key=lambda x: x.player_id)  # 按玩家ID排序，确保固定顺序
         
         # 每个玩家依次发言
-        for player in alive_players:
+        for i, player in enumerate(alive_players):
             try:
+                # 在玩家发言前，收集本轮中已经发言的玩家内容
+                current_round_speeches = []
+                for j in range(i):
+                    previous_player = alive_players[j]
+                    # 获取之前玩家在本轮的发言
+                    previous_speeches = previous_player.get_current_round_speeches(round_num)
+                    current_round_speeches.extend(previous_speeches)
+                
+                # 为当前玩家提供本轮已发言的上下文
+                if current_round_speeches:
+                    # 将本轮已发言内容添加到当前玩家的记忆中
+                    for speech_data in current_round_speeches:
+                        player.update_memory("speeches", speech_data)
+                
                 game_state_dict = self.game_state.export_state(hide_roles_from_ai=True)
                 speech = await player.make_speech(game_state_dict)
                 
@@ -703,13 +717,15 @@ class WerewolfGameEngine:
                 # 记录发言
                 self.game_state.record_speech(player.player_id, speech)
                 
-                # 其他玩家观察发言
+                # 其他玩家观察发言（包括轮次信息）
                 for other_player in alive_players:
                     if other_player != player:
                         other_player.update_memory("speeches", {
                             "speaker": player.name,
                             "speaker_id": player.player_id,
-                            "content": speech
+                            "content": speech,
+                            "round": round_num,
+                            "context": "正常发言"
                         })
                 
                 await asyncio.sleep(self.speech_delay)  # 让用户有时间阅读发言
@@ -790,7 +806,8 @@ class WerewolfGameEngine:
                                     "speaker": player.name,
                                     "speaker_id": player.player_id,
                                     "content": speech,
-                                    "context": "平票辩护"
+                                    "context": "平票辩护",
+                                    "round": round_num
                                 })
                         
                         await asyncio.sleep(self.speech_delay)
@@ -848,14 +865,12 @@ class WerewolfGameEngine:
                     # 将遗言广播给其他存活玩家
                     if last_words_result:
                         alive_players = [p for p in self.players if p.is_alive and p.player_id != eliminated_player_id]
-                        for other_player in alive_players:
-                            other_player.update_memory("speeches", {
-                                "speaker": exiled_player.name,
-                                "speaker_id": exiled_player.player_id,
-                                "content": last_words_result["content"],
-                                "context": "放逐遗言",
-                                "round": self.game_state.current_round
-                            })
+                        await self.day_end_system._broadcast_last_words_to_players(
+                            exiled_player, 
+                            last_words_result["content"], 
+                            game_state_dict, 
+                            alive_players
+                        )
                 
                 self.ui_observer.display_death_announcement(
                     eliminated_player_info, "投票放逐"

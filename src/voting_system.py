@@ -27,7 +27,7 @@ class VotingSystem:
         self.logger = logging.getLogger(__name__)
         
         # 投票配置
-        self.vote_timeout = 30  # 投票超时时间（秒）
+        self.vote_timeout = 180  # 投票超时时间（秒）
         self.allow_abstention = False  # 是否允许弃权
         self.require_majority = False  # 是否要求过半数票
         

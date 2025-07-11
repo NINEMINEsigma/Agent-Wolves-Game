@@ -165,18 +165,9 @@ class DayEndSystem:
 
         return prompt
     
-    async def _broadcast_last_words_to_players(self, exiled_player, last_words: str, game_state_dict: Dict[str, Any]):
+    async def _broadcast_last_words_to_players(self, exiled_player, last_words: str, game_state_dict: Dict[str, Any], alive_players: Optional[List] = None):
         """向其他存活玩家广播遗言"""
         try:
-            # 获取存活玩家（排除被放逐的玩家）
-            alive_players = []
-            for player_data in game_state_dict.get('players', []):
-                if (player_data.get('is_alive', False) and 
-                    player_data.get('player_id') != exiled_player.player_id):
-                    # 这里需要找到对应的AI代理
-                    # 注意：这个方法可能需要从游戏引擎获取实际的玩家对象
-                    pass
-            
             # 记录遗言到游戏记忆中
             last_words_info = {
                 "speaker": exiled_player.name,
@@ -186,11 +177,18 @@ class DayEndSystem:
                 "round": game_state_dict.get('current_round', 1)
             }
             
-            # 这里应该调用游戏引擎的方法来更新其他玩家的记忆
-            # 由于架构限制，这部分逻辑可能需要在游戏引擎中处理
+            # 如果提供了存活玩家列表，直接更新他们的记忆
+            if alive_players:
+                for other_player in alive_players:
+                    if other_player.player_id != exiled_player.player_id:
+                        other_player.update_memory("speeches", last_words_info)
+                        self.logger.info(f"遗言已广播给玩家{other_player.player_id}")
+            
+            return last_words_info
             
         except Exception as e:
             self.logger.error(f"广播遗言时出错: {e}")
+            return None
     
     async def _conduct_individual_thinking(self, player, game_state_dict: Dict[str, Any], round_num: int) -> Dict[str, Any]:
         """进行单个玩家的独立思考"""

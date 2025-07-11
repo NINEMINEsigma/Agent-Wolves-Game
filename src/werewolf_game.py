@@ -178,24 +178,35 @@ class WerewolfGame:
         from src.identity_system import IdentitySystem
         identity_system = IdentitySystem()
         
+        # 获取记忆配置
+        memory_config = self.config.get("memory_settings", {})
+        
+        # 确保包含夜晚记忆配置
+        if "night_discussion_memory_limit" not in memory_config:
+            memory_config["night_discussion_memory_limit"] = 20
+        if "night_thinking_memory_limit" not in memory_config:
+            memory_config["night_thinking_memory_limit"] = 15
+        if "include_night_context_in_speech" not in memory_config:
+            memory_config["include_night_context_in_speech"] = True
+        
         # 创建玩家
         for role in role_list:
             # 统一命名为"玩家N"，确保AI之间无法通过名称识别角色身份
             # 身份隐藏仅针对AI，用户界面会显示完整信息供观察
             player_name = f"玩家{player_id}"
             
-            # 根据角色创建对应的AI代理，使用身份强化系统
+            # 根据角色创建对应的AI代理，使用身份强化系统和记忆配置
             if role == "villager":
-                player = Villager(player_id, player_name, self.llm_interface, self.role_prompts, identity_system)
+                player = Villager(player_id, player_name, self.llm_interface, self.role_prompts, identity_system, memory_config)
             elif role == "werewolf":
-                player = Werewolf(player_id, player_name, self.llm_interface, self.role_prompts, identity_system)
+                player = Werewolf(player_id, player_name, self.llm_interface, self.role_prompts, identity_system, memory_config)
             elif role == "seer":
-                player = Seer(player_id, player_name, self.llm_interface, self.role_prompts, identity_system)
+                player = Seer(player_id, player_name, self.llm_interface, self.role_prompts, identity_system, memory_config)
             elif role == "witch":
-                player = Witch(player_id, player_name, self.llm_interface, self.role_prompts, identity_system)
+                player = Witch(player_id, player_name, self.llm_interface, self.role_prompts, identity_system, memory_config)
             else:
                 # 默认创建村民
-                player = Villager(player_id, player_name, self.llm_interface, self.role_prompts, identity_system)
+                player = Villager(player_id, player_name, self.llm_interface, self.role_prompts, identity_system, memory_config)
             
             self.players.append(player)
             player_id += 1

@@ -11,8 +11,8 @@ from ..ai_agent import BaseAIAgent
 class Seer(BaseAIAgent):
     """预言家角色类"""
     
-    def __init__(self, player_id: int, name: str, llm_interface, prompts: Dict[str, Any], identity_system=None):
-        super().__init__(player_id, name, "seer", llm_interface, prompts, identity_system)
+    def __init__(self, player_id: int, name: str, llm_interface, prompts: Dict[str, Any], identity_system=None, memory_config=None):
+        super().__init__(player_id, name, "seer", llm_interface, prompts, identity_system, memory_config)
         
         # 预言家特有属性
         self.vision_results = {}  # 查验结果 {player_id: role}

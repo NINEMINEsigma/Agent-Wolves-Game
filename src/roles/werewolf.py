@@ -11,8 +11,8 @@ from ..ai_agent import BaseAIAgent
 class Werewolf(BaseAIAgent):
     """狼人角色类"""
     
-    def __init__(self, player_id: int, name: str, llm_interface, prompts: Dict[str, Any], identity_system=None):
-        super().__init__(player_id, name, "werewolf", llm_interface, prompts, identity_system)
+    def __init__(self, player_id: int, name: str, llm_interface, prompts: Dict[str, Any], identity_system=None, memory_config=None):
+        super().__init__(player_id, name, "werewolf", llm_interface, prompts, identity_system, memory_config)
         
         # 狼人特有属性
         self.teammates = []  # 狼人同伴列表

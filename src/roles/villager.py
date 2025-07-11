@@ -11,8 +11,8 @@ from ..ai_agent import BaseAIAgent
 class Villager(BaseAIAgent):
     """村民角色类"""
     
-    def __init__(self, player_id: int, name: str, llm_interface, prompts: Dict[str, Any], identity_system=None):
-        super().__init__(player_id, name, "villager", llm_interface, prompts, identity_system)
+    def __init__(self, player_id: int, name: str, llm_interface, prompts: Dict[str, Any], identity_system=None, memory_config=None):
+        super().__init__(player_id, name, "villager", llm_interface, prompts, identity_system, memory_config)
         
         # 村民特有属性
         self.confidence_level = 0.5  # 发言自信度

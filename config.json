@@ -18,6 +18,18 @@
     "context_length": 4096,
     "presence_penalty": 1.5
   },
+  "memory_settings": {
+    "max_speech_length": 500,
+    "max_memory_events": 50,
+    "context_length_limit": 2000,
+    "round_based_memory": true,
+    "preserve_last_words": true,
+    "speech_content_truncate": false,
+    "memory_retention_rounds": 3,
+    "night_discussion_memory_limit": 20,
+    "night_thinking_memory_limit": 15,
+    "include_night_context_in_speech": true
+  },
   "ui_settings": {
     "display_thinking": true,
     "auto_scroll": true,

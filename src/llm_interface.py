@@ -94,7 +94,7 @@ class QwenInterface:
             response = requests.post(
                 f"{self.base_url}/api/generate",
                 json=payload,
-                timeout=30
+                timeout=60
             )
             
             if response.status_code == 200:

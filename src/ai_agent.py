@@ -19,7 +19,8 @@ class BaseAIAgent(ABC):
     
     def __init__(self, player_id: int, name: str, role: str, 
                  llm_interface: QwenInterface, prompts: Dict[str, Any], 
-                 identity_system: Optional[IdentitySystem] = None):
+                 identity_system: Optional[IdentitySystem] = None,
+                 memory_config: Optional[Dict[str, Any]] = None):
         """
         初始化AI智能体
         
@@ -30,6 +31,7 @@ class BaseAIAgent(ABC):
             llm_interface: LLM接口实例
             prompts: 提示词模板
             identity_system: 身份认同系统
+            memory_config: 记忆配置
         """
         self.player_id = player_id
         self.name = name
@@ -50,8 +52,24 @@ class BaseAIAgent(ABC):
             "speeches": [],
             "votes": [],
             "night_actions": [],
-            "observations": []
+            "observations": [],
+            "night_discussions": [],  # 新增：夜晚讨论记忆
+            "night_thinking": []     # 新增：夜晚思考记忆
         }
+        
+        # 记忆配置
+        memory_config = memory_config or {}
+        self.max_memory_events = memory_config.get("max_memory_events", 50)
+        self.max_speech_length = memory_config.get("max_speech_length", 500)
+        self.speech_content_truncate = memory_config.get("speech_content_truncate", False)
+        self.context_length_limit = memory_config.get("context_length_limit", 2000)
+        self.round_based_memory = memory_config.get("round_based_memory", True)
+        self.preserve_last_words = memory_config.get("preserve_last_words", True)
+        self.memory_retention_rounds = memory_config.get("memory_retention_rounds", 3)
+        # 新增：夜晚记忆配置
+        self.night_discussion_memory_limit = memory_config.get("night_discussion_memory_limit", 20)
+        self.night_thinking_memory_limit = memory_config.get("night_thinking_memory_limit", 15)
+        self.include_night_context_in_speech = memory_config.get("include_night_context_in_speech", True)
         
         # 角色特定信息
         self.role_info = {}
@@ -105,17 +123,71 @@ class BaseAIAgent(ABC):
         更新游戏记忆
         
         Args:
-            event_type: 事件类型 (speech, vote, night_action, observation)
+            event_type: 事件类型 (speech, vote, night_action, observation, night_discussion, night_thinking)
             event_data: 事件数据
         """
         timestamp = datetime.now().isoformat()
         event_data["timestamp"] = timestamp
         
+        # 添加轮次信息
+        event_data["round"] = event_data.get("round", 1)
+        
         if event_type in self.game_memory:
             self.game_memory[event_type].append(event_data)
-            # 限制记忆长度，避免上下文过长
-            if len(self.game_memory[event_type]) > 20:
-                self.game_memory[event_type] = self.game_memory[event_type][-20:]
+            
+            # 根据记忆类型使用不同的限制
+            if event_type == "night_discussions":
+                memory_limit = getattr(self, 'night_discussion_memory_limit', 20)
+            elif event_type == "night_thinking":
+                memory_limit = getattr(self, 'night_thinking_memory_limit', 15)
+            else:
+                memory_limit = getattr(self, 'max_memory_events', 50)
+            
+            if len(self.game_memory[event_type]) > memory_limit:
+                self.game_memory[event_type] = self.game_memory[event_type][-memory_limit:]
+    
+    def update_night_discussion_memory(self, discussion_data: Dict[str, Any]):
+        """
+        更新夜晚讨论记忆
+        
+        Args:
+            discussion_data: 讨论数据，包含发言者、内容、轮次等信息
+        """
+        self.update_memory("night_discussions", discussion_data)
+    
+    def update_night_thinking_memory(self, thinking_data: Dict[str, Any]):
+        """
+        更新夜晚思考记忆
+        
+        Args:
+            thinking_data: 思考数据，包含思考过程、决策因素等信息
+        """
+        self.update_memory("night_thinking", thinking_data)
+    
+    def get_night_memory_context(self, current_round: Optional[int] = None) -> str:
+        """
+        获取夜晚记忆上下文
+        
+        Args:
+            current_round: 当前轮次，如果为None则获取所有轮次
+            
+        Returns:
+            格式化的夜晚记忆上下文
+        """
+        context_parts = []
+        
+        # 获取夜晚讨论记忆
+        if self.include_night_context_in_speech:
+            night_discussions = self.get_night_discussions_by_round(current_round)
+            if night_discussions:
+                context_parts.append(self.format_night_discussion_context(night_discussions))
+            
+            # 获取夜晚思考记忆
+            night_thinking = self.get_night_thinking_by_round(current_round)
+            if night_thinking:
+                context_parts.append(self.format_night_thinking_context(night_thinking))
+        
+        return "\n\n".join(context_parts) if context_parts else ""
     
     def update_suspicion(self, target_id: int, suspicion_change: float, reason: str = ""):
         """
@@ -200,14 +272,29 @@ class BaseAIAgent(ABC):
         """
         context_parts = []
         
+        # 获取配置的记忆设置
+        speech_content_truncate = getattr(self, 'speech_content_truncate', False)
+        max_speech_length = getattr(self, 'max_speech_length', 500)
+        
         # 最近的发言
         recent_speeches = self.game_memory["speeches"][-max_events:]
         if recent_speeches:
             speech_texts = []
             for speech in recent_speeches:
                 speaker = speech.get("speaker", "未知")
-                content = speech.get("content", "")[:100]  # 限制长度
-                speech_texts.append(f"{speaker}: {content}")
+                content = speech.get("content", "")
+                
+                # 根据配置决定是否截断发言内容
+                if speech_content_truncate and len(content) > max_speech_length:
+                    content = content[:max_speech_length] + "..."
+                
+                # 添加上下文信息
+                context = speech.get("context", "")
+                round_info = speech.get("round", "")
+                context_info = f" [{context}]" if context else ""
+                round_info = f" (第{round_info}轮)" if round_info else ""
+                
+                speech_texts.append(f"{speaker}{round_info}{context_info}: {content}")
             context_parts.append("最近发言:\n" + "\n".join(speech_texts))
         
         # 最近的投票
@@ -217,7 +304,9 @@ class BaseAIAgent(ABC):
             for vote in recent_votes:
                 voter = vote.get("voter", "未知")
                 target = vote.get("target", "未知")
-                vote_texts.append(f"{voter}投票给{target}")
+                round_info = vote.get("round", "")
+                round_info = f" (第{round_info}轮)" if round_info else ""
+                vote_texts.append(f"{voter}{round_info}投票给{target}")
             context_parts.append("最近投票:\n" + "\n".join(vote_texts))
         
         # 观察记录
@@ -226,10 +315,66 @@ class BaseAIAgent(ABC):
             obs_texts = []
             for obs in recent_observations:
                 content = obs.get("content", "")
-                obs_texts.append(content)
+                round_info = obs.get("round", "")
+                round_info = f" (第{round_info}轮)" if round_info else ""
+                obs_texts.append(f"{content}{round_info}")
             context_parts.append("观察记录:\n" + "\n".join(obs_texts))
         
+        # 新增：夜晚记忆上下文
+        if self.include_night_context_in_speech:
+            night_context = self.get_night_memory_context()
+            if night_context:
+                context_parts.append(night_context)
+        
         return "\n\n".join(context_parts) if context_parts else "暂无相关记忆"
+    
+    def get_current_round_speeches(self, current_round: Optional[int] = None) -> List[Dict[str, Any]]:
+        """
+        获取当前轮次的发言记录
+        
+        Args:
+            current_round: 当前轮次，如果为None则获取最新轮次
+            
+        Returns:
+            当前轮次的发言列表
+        """
+        if not self.game_memory["speeches"]:
+            return []
+        
+        if current_round is None:
+            # 获取最新轮次
+            current_round = max([speech.get("round", 1) for speech in self.game_memory["speeches"]])
+        
+        # 过滤出当前轮次的发言
+        current_round_speeches = [
+            speech for speech in self.game_memory["speeches"] 
+            if speech.get("round", 1) == current_round
+        ]
+        
+        return current_round_speeches
+    
+    def get_speeches_before_player(self, player_id: int, current_round: Optional[int] = None) -> List[Dict[str, Any]]:
+        """
+        获取指定玩家之前发言的玩家记录
+        
+        Args:
+            player_id: 当前发言玩家ID
+            current_round: 当前轮次
+            
+        Returns:
+            之前玩家的发言列表
+        """
+        if current_round is None:
+            current_round = max([speech.get("round", 1) for speech in self.game_memory["speeches"]])
+        
+        # 获取当前轮次中，在指定玩家之前发言的记录
+        previous_speeches = [
+            speech for speech in self.game_memory["speeches"]
+            if (speech.get("round", 1) == current_round and 
+                speech.get("speaker_id", 0) < player_id)
+        ]
+        
+        return previous_speeches
     
     async def analyze_speech(self, speaker_id: int, speech_content: str) -> Dict[str, Any]:
         """
@@ -441,4 +586,111 @@ class BaseAIAgent(ABC):
 
     def __repr__(self) -> str:
         """详细字符串表示"""
-        return f"<{self.__class__.__name__}(id={self.player_id}, name='{self.name}', role='{self.role}', alive={self.is_alive})>" 
+        return f"<{self.__class__.__name__}(id={self.player_id}, name='{self.name}', role='{self.role}', alive={self.is_alive})>"
+    
+    def get_night_discussions_by_round(self, current_round: Optional[int] = None) -> List[Dict[str, Any]]:
+        """
+        获取指定轮次的夜晚讨论记录
+        
+        Args:
+            current_round: 当前轮次，如果为None则获取所有轮次
+            
+        Returns:
+            夜晚讨论记录列表
+        """
+        if not self.game_memory["night_discussions"]:
+            return []
+        
+        if current_round is None:
+            return self.game_memory["night_discussions"]
+        
+        # 过滤出指定轮次的讨论
+        return [
+            discussion for discussion in self.game_memory["night_discussions"] 
+            if discussion.get("round", 1) == current_round
+        ]
+    
+    def get_night_thinking_by_round(self, current_round: Optional[int] = None) -> List[Dict[str, Any]]:
+        """
+        获取指定轮次的夜晚思考记录
+        
+        Args:
+            current_round: 当前轮次，如果为None则获取所有轮次
+            
+        Returns:
+            夜晚思考记录列表
+        """
+        if not self.game_memory["night_thinking"]:
+            return []
+        
+        if current_round is None:
+            return self.game_memory["night_thinking"]
+        
+        # 过滤出指定轮次的思考
+        return [
+            thinking for thinking in self.game_memory["night_thinking"] 
+            if thinking.get("round", 1) == current_round
+        ]
+    
+    def format_night_discussion_context(self, discussions: List[Dict[str, Any]]) -> str:
+        """
+        格式化夜晚讨论上下文
+        
+        Args:
+            discussions: 讨论记录列表
+            
+        Returns:
+            格式化的讨论上下文
+        """
+        if not discussions:
+            return ""
+        
+        context_parts = ["夜晚讨论记录:"]
+        
+        for discussion in discussions[-5:]:  # 最近5条讨论
+            speaker = discussion.get("speaker_name", "未知")
+            content = discussion.get("content", "")
+            round_info = discussion.get("round", "")
+            speech_type = discussion.get("speech_type", "")
+            
+            round_info = f" (第{round_info}轮)" if round_info else ""
+            type_info = f" [{speech_type}]" if speech_type else ""
+            
+            context_parts.append(f"🐺 {speaker}{round_info}{type_info}: {content}")
+        
+        return "\n".join(context_parts)
+    
+    def format_night_thinking_context(self, thinking_records: List[Dict[str, Any]]) -> str:
+        """
+        格式化夜晚思考上下文
+        
+        Args:
+            thinking_records: 思考记录列表
+            
+        Returns:
+            格式化的思考上下文
+        """
+        if not thinking_records:
+            return ""
+        
+        context_parts = ["夜晚思考记录:"]
+        
+        for thinking in thinking_records[-3:]:  # 最近3条思考
+            role = thinking.get("role", "未知")
+            content = thinking.get("thinking_content", "")
+            round_info = thinking.get("round", "")
+            decision_factors = thinking.get("decision_factors", {})
+            
+            round_info = f" (第{round_info}轮)" if round_info else ""
+            
+            context_parts.append(f"💭 {role}{round_info}: {content}")
+            
+            # 添加决策因素
+            if decision_factors:
+                factors = []
+                for key, value in decision_factors.items():
+                    factors.append(f"{key}: {value}")
+                if factors:
+                    context_parts.append(f"   决策因素: {', '.join(factors)}")
+        
+        return "\n".join(context_parts) 

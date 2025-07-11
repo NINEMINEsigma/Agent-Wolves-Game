@@ -11,8 +11,8 @@ from ..ai_agent import BaseAIAgent
 class Witch(BaseAIAgent):
     """女巫角色类"""
     
-    def __init__(self, player_id: int, name: str, llm_interface, prompts: Dict[str, Any], identity_system=None):
-        super().__init__(player_id, name, "witch", llm_interface, prompts, identity_system)
+    def __init__(self, player_id: int, name: str, llm_interface, prompts: Dict[str, Any], identity_system=None, memory_config=None):
+        super().__init__(player_id, name, "witch", llm_interface, prompts, identity_system, memory_config)
         
         # 女巫特有属性
         self.has_antidote = True  # 是否还有解药

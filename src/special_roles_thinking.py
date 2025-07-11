@@ -299,7 +299,7 @@ class SpecialRolesThinkingSystem:
                 )
                 print(f"💭 {seer.name} 的思考：{thinking_response}")
                 
-                return {
+                thinking_result = {
                     "thinking_content": thinking_response,
                     "analyzed_targets": top_targets,
                     "decision_factors": {
@@ -308,12 +308,23 @@ class SpecialRolesThinkingSystem:
                         "priority": "identity_confirmation"
                     }
                 }
+                
+                # 更新预言家的夜晚思考记忆
+                seer.update_night_thinking_memory({
+                    "round": current_round,
+                    "role": "预言家",
+                    "thinking_content": thinking_response,
+                    "decision_factors": thinking_result["decision_factors"],
+                    "context": "预言家夜晚查验思考"
+                })
+                
+                return thinking_result
             else:
                 # 备用思考内容
                 default_thinking = f"我需要确认最可疑的玩家身份。{top_targets[0]['name']}的行为最值得关注。"
                 print(f"💭 {seer.name} 的思考：{default_thinking}")
                 
-                return {
+                thinking_result = {
                     "thinking_content": default_thinking,
                     "analyzed_targets": top_targets,
                     "decision_factors": {
@@ -322,6 +333,17 @@ class SpecialRolesThinkingSystem:
                         "priority": "identity_confirmation"
                     }
                 }
+                
+                # 更新预言家的夜晚思考记忆
+                seer.update_night_thinking_memory({
+                    "round": current_round,
+                    "role": "预言家",
+                    "thinking_content": default_thinking,
+                    "decision_factors": thinking_result["decision_factors"],
+                    "context": "预言家夜晚查验思考"
+                })
+                
+                return thinking_result
                 
         except Exception as e:
             self.logger.error(f"预言家思考过程出错: {e}")
@@ -481,21 +503,43 @@ class SpecialRolesThinkingSystem:
                 )
                 print(f"💭 {witch.name} 的思考：{thinking_response}")
                 
-                return {
+                thinking_result = {
                     "thinking_content": thinking_response,
                     "situation_analysis": situation,
                     "decision_factors": self._extract_decision_factors(thinking_response, situation)
                 }
+                
+                # 更新女巫的夜晚思考记忆
+                witch.update_night_thinking_memory({
+                    "round": situation['current_round'],
+                    "role": "女巫",
+                    "thinking_content": thinking_response,
+                    "decision_factors": thinking_result["decision_factors"],
+                    "context": "女巫夜晚药剂使用思考"
+                })
+                
+                return thinking_result
             else:
                 # 备用思考内容
                 default_thinking = self._generate_default_witch_thinking(situation, death_info)
                 print(f"💭 {witch.name} 的思考：{default_thinking}")
                 
-                return {
+                thinking_result = {
                     "thinking_content": default_thinking,
                     "situation_analysis": situation,
                     "decision_factors": {"priority": "default"}
                 }
+                
+                # 更新女巫的夜晚思考记忆
+                witch.update_night_thinking_memory({
+                    "round": situation['current_round'],
+                    "role": "女巫",
+                    "thinking_content": default_thinking,
+                    "decision_factors": thinking_result["decision_factors"],
+                    "context": "女巫夜晚药剂使用思考"
+                })
+                
+                return thinking_result
                 
         except Exception as e:
             self.logger.error(f"女巫思考过程出错: {e}")

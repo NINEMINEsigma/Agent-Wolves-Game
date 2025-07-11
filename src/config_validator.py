@@ -97,6 +97,21 @@ class ConfigValidator:
             "observation_delays": ui_settings.get("observation_delays", default_config["ui_settings"]["observation_delays"])
         }
         
+        # 验证和合并记忆设置
+        memory_settings = config.get("memory_settings", {})
+        validated_config["memory_settings"] = {
+            "max_speech_length": memory_settings.get("max_speech_length", default_config["memory_settings"]["max_speech_length"]),
+            "max_memory_events": memory_settings.get("max_memory_events", default_config["memory_settings"]["max_memory_events"]),
+            "context_length_limit": memory_settings.get("context_length_limit", default_config["memory_settings"]["context_length_limit"]),
+            "round_based_memory": memory_settings.get("round_based_memory", default_config["memory_settings"]["round_based_memory"]),
+            "preserve_last_words": memory_settings.get("preserve_last_words", default_config["memory_settings"]["preserve_last_words"]),
+            "speech_content_truncate": memory_settings.get("speech_content_truncate", default_config["memory_settings"]["speech_content_truncate"]),
+            "memory_retention_rounds": memory_settings.get("memory_retention_rounds", default_config["memory_settings"]["memory_retention_rounds"]),
+            "night_discussion_memory_limit": memory_settings.get("night_discussion_memory_limit", default_config["memory_settings"]["night_discussion_memory_limit"]),
+            "night_thinking_memory_limit": memory_settings.get("night_thinking_memory_limit", default_config["memory_settings"]["night_thinking_memory_limit"]),
+            "include_night_context_in_speech": memory_settings.get("include_night_context_in_speech", default_config["memory_settings"]["include_night_context_in_speech"])
+        }
+        
         return validated_config
     
     def _get_default_config(self) -> Dict[str, Any]:
@@ -125,6 +140,18 @@ class ConfigValidator:
                     "witch": 1
                 },
                 "discussion_time": 60
+            },
+            "memory_settings": {
+                "max_speech_length": 500,
+                "max_memory_events": 50,
+                "context_length_limit": 2000,
+                "round_based_memory": True,
+                "preserve_last_words": True,
+                "speech_content_truncate": False,
+                "memory_retention_rounds": 3,
+                "night_discussion_memory_limit": 20,
+                "night_thinking_memory_limit": 15,
+                "include_night_context_in_speech": True
             },
             "ui_settings": {
                 "display_thinking": True,
@@ -158,6 +185,7 @@ class ConfigValidator:
             "ai_settings": False,
             "game_settings": False,
             "ui_settings": False,
+            "memory_settings": False,
             "model_name": False,
             "ollama_url": False,
             "roles_config": False
@@ -175,6 +203,11 @@ class ConfigValidator:
         if game_settings:
             results["game_settings"] = True
             results["roles_config"] = bool(game_settings.get("roles"))
+        
+        # 验证记忆设置
+        memory_settings = config.get("memory_settings", {})
+        if memory_settings:
+            results["memory_settings"] = True
         
         # 验证UI设置
         ui_settings = config.get("ui_settings", {})

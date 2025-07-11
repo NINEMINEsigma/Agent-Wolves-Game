@@ -340,6 +340,7 @@ class WerewolfCooperationSystem:
             对话记录
         """
         dialogue_history = []
+        current_round = game_state_dict.get("current_round", 1)
         
         print(f"\n💬 狼人夜晚私密对话开始...")
         print(f"🌙 月黑风高，狼人们开始密谋...")
@@ -350,13 +351,19 @@ class WerewolfCooperationSystem:
             speech = await self._generate_werewolf_opening_statement(werewolf, targets, game_state_dict, dialogue_history)
             
             dialogue_entry = {
-                "round": 1,
+                "round": current_round,
+                "discussion_round": 1,
                 "speaker_id": werewolf.player_id,
                 "speaker_name": werewolf.name,
                 "content": speech,
-                "speech_type": "opening_analysis"
+                "speech_type": "opening_analysis",
+                "context": "狼人夜晚群体讨论"
             }
             dialogue_history.append(dialogue_entry)
+            
+            # 为所有狼人更新夜晚讨论记忆
+            for w in werewolves:
+                w.update_night_discussion_memory(dialogue_entry)
             
             print(f"🐺 {werewolf.name}: {speech}")
             await asyncio.sleep(0.1)  # 模拟思考时间
@@ -368,13 +375,19 @@ class WerewolfCooperationSystem:
                 response_speech = await self._generate_werewolf_response(werewolf, dialogue_history, targets, game_state_dict)
                 
                 dialogue_entry = {
-                    "round": 2,
+                    "round": current_round,
+                    "discussion_round": 2,
                     "speaker_id": werewolf.player_id,
                     "speaker_name": werewolf.name,
                     "content": response_speech,
-                    "speech_type": "response_debate"
+                    "speech_type": "response_debate",
+                    "context": "狼人夜晚群体讨论"
                 }
                 dialogue_history.append(dialogue_entry)
+                
+                # 为所有狼人更新夜晚讨论记忆
+                for w in werewolves:
+                    w.update_night_discussion_memory(dialogue_entry)
                 
                 print(f"🐺 {werewolf.name}(玩家{werewolf.player_id}): {response_speech}")
                 await asyncio.sleep(0.5)
@@ -385,13 +398,19 @@ class WerewolfCooperationSystem:
             final_speech = await self._generate_werewolf_final_statement(werewolf, dialogue_history, targets, game_state_dict)
             
             dialogue_entry = {
-                "round": 3,
+                "round": current_round,
+                "discussion_round": 3,
                 "speaker_id": werewolf.player_id,
                 "speaker_name": werewolf.name,
                 "content": final_speech,
-                "speech_type": "final_decision"
+                "speech_type": "final_decision",
+                "context": "狼人夜晚群体讨论"
             }
             dialogue_history.append(dialogue_entry)
+            
+            # 为所有狼人更新夜晚讨论记忆
+            for w in werewolves:
+                w.update_night_discussion_memory(dialogue_entry)
             
             print(f"🐺 {werewolf.name}(玩家{werewolf.player_id}): {final_speech}")
             await asyncio.sleep(0.5)
