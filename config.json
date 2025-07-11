@@ -10,7 +10,7 @@
     "discussion_time": 60
   },
   "ai_settings": {
-    "model_name": "qwen3:0.6b",
+    "model_name": "deepseek-r1:8b",
     "ollama_base_url": "http://localhost:11434",
     "temperature": 1.1,
     "max_tokens": 800,
